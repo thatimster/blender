@@ -126,25 +126,26 @@ void KX_FontObject::ProcessReplica()
 
 void KX_FontObject::AddMeshUser()
 {
-	m_meshUser = new RAS_TextUser(&m_clientInfo, m_boundingBox);
+	m_defaultMeshUser.reset(new RAS_TextUser(&m_clientInfo, m_boundingBox));
+	SetCurrentMeshUser(m_defaultMeshUser.get());
 
 	RAS_BucketManager *bucketManager = GetScene()->GetBucketManager();
 	RAS_DisplayArrayBucket *arrayBucket = bucketManager->GetTextDisplayArrayBucket();
 
-	m_meshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
-	m_meshUser->SetFrontFace(!IsNegativeScaling());
+	m_defaultMeshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
+	m_defaultMeshUser->SetFrontFace(!IsNegativeScaling());
 
-	m_meshUser->NewMeshSlot(arrayBucket);
+	m_defaultMeshUser->NewMeshSlot(arrayBucket);
 }
 
 void KX_FontObject::UpdateBuckets()
 {
-	RAS_TextUser *textUser = static_cast<RAS_TextUser *>(m_meshUser);
+	RAS_TextUser *textUser = static_cast<RAS_TextUser *>(m_defaultMeshUser.get());
 
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_sgNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		m_meshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
-		m_meshUser->SetFrontFace(!IsNegativeScaling());
+		m_defaultMeshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
+		m_defaultMeshUser->SetFrontFace(!IsNegativeScaling());
 		m_sgNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
 

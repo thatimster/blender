@@ -110,9 +110,7 @@ KX_GameObject::KX_GameObject(void *sgReplicationInfo,
                              SG_Callbacks callbacks)
 	:m_clientInfo(this, KX_ClientObjectInfo::ACTOR),
 	m_layer(0),
-	m_lodManager(nullptr),
-	m_currentLodLevel(0),
-	m_meshUser(nullptr),
+	m_currentMeshUser(nullptr),
 	m_convertInfo(nullptr),
 	m_objectColor(mt::one4),
 	m_bVisible(true),
@@ -141,9 +139,8 @@ KX_GameObject::KX_GameObject(const KX_GameObject& other)
 	m_name(other.m_name),
 	m_layer(other.m_layer),
 	m_meshes(other.m_meshes),
-	m_lodManager(other.m_lodManager),
-	m_currentLodLevel(0),
-	m_meshUser(nullptr),
+	m_lodUser(other.m_lodUser),
+	m_currentMeshUser(nullptr),
 	m_convertInfo(other.m_convertInfo),
 	m_objectColor(other.m_objectColor),
 	m_bVisible(other.m_bVisible),
@@ -162,10 +159,6 @@ KX_GameObject::KX_GameObject(const KX_GameObject& other)
 	m_collisionCallbacks(other.m_collisionCallbacks)
 #endif  // WITH_PYTHON
 {
-	if (m_lodManager) {
-		m_lodManager->AddRef();
-	}
-
 #ifdef WITH_PYTHON
 	if (m_attr_dict) {
 		m_attr_dict = PyDict_Copy(m_attr_dict);
@@ -212,9 +205,6 @@ KX_GameObject::~KX_GameObject()
 	if (m_instanceObjects) {
 		m_instanceObjects->Release();
 	}
-	if (m_lodManager) {
-		m_lodManager->Release();
-	}
 }
 
 KX_GameObject *KX_GameObject::GetClientObject(KX_ClientObjectInfo *info)
@@ -238,7 +228,7 @@ void KX_GameObject::SetName(const std::string& name)
 
 RAS_Deformer *KX_GameObject::GetDeformer()
 {
-	return (m_meshUser) ? m_meshUser->GetDeformer() : nullptr;
+	return (m_currentMeshUser) ? m_currentMeshUser->GetDeformer() : nullptr;
 }
 
 PHY_IPhysicsController *KX_GameObject::GetPhysicsController()
@@ -714,29 +704,35 @@ void KX_GameObject::UpdateBlenderObjectMatrix(Object *blendobj)
 	}
 }
 
-void KX_GameObject::AddMeshUser()
+void KX_GameObject::AddDefaultMeshUser()
 {
 	for (size_t i = 0; i < m_meshes.size(); ++i) {
-		RAS_Deformer *deformer = BL_ConvertDeformer(this, m_meshes[i]);
-		m_meshUser = m_meshes[i]->AddMeshUser(&m_clientInfo, deformer);
-
-		m_meshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
-		m_meshUser->SetFrontFace(!IsNegativeScaling());
+		m_defaultMeshUser.reset(m_meshes[i]->AddMeshUser(&m_clientInfo, GetDeformer()));
+		SetCurrentMeshUser(m_defaultMeshUser.get());
 	}
+}
+
+void KX_GameObject::SetCurrentMeshUser(RAS_MeshUser *meshUser)
+{
+	m_currentMeshUser = meshUser;
+
+	// Make sure the mesh user get the matrix even if the object doesn't move.
+	m_defaultMeshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
+	m_defaultMeshUser->SetFrontFace(!IsNegativeScaling());
 }
 
 void KX_GameObject::UpdateBuckets()
 {
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_sgNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		m_meshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
-		m_meshUser->SetFrontFace(!IsNegativeScaling());
+		m_currentMeshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
+		m_currentMeshUser->SetFrontFace(!IsNegativeScaling());
 		m_sgNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
 
-	m_meshUser->SetLayer(m_layer);
-	m_meshUser->SetColor(m_objectColor);
-	m_meshUser->ActivateMeshSlots();
+	m_currentMeshUser->SetLayer(m_layer);
+	m_currentMeshUser->SetColor(m_objectColor);
+	m_currentMeshUser->ActivateMeshSlots();
 }
 
 void KX_GameObject::ReplaceMesh(KX_Mesh *mesh, bool use_gfx, bool use_phys)
@@ -744,7 +740,7 @@ void KX_GameObject::ReplaceMesh(KX_Mesh *mesh, bool use_gfx, bool use_phys)
 	if (use_gfx && mesh) {
 		RemoveMeshes();
 		AddMesh(mesh);
-		AddMeshUser();
+		AddDefaultMeshUser();
 	}
 
 	// Update the new assigned mesh with the physics mesh.
@@ -761,13 +757,7 @@ void KX_GameObject::ReplaceMesh(KX_Mesh *mesh, bool use_gfx, bool use_phys)
 void KX_GameObject::RemoveMeshes()
 {
 	// Remove all mesh slots.
-	if (m_meshUser) {
-		delete m_meshUser;
-		m_meshUser = nullptr;
-	}
-
-	//note: meshes can be shared, and are deleted by BL_SceneConverter
-
+	m_defaultMeshUser.reset(nullptr);
 	m_meshes.clear();
 }
 
@@ -776,58 +766,43 @@ const std::vector<KX_Mesh *>& KX_GameObject::GetMeshList() const
 	return m_meshes;
 }
 
-RAS_MeshUser *KX_GameObject::GetMeshUser() const
+RAS_MeshUser *KX_GameObject::GetDefaultMeshUser() const
 {
-	return m_meshUser;
+	return m_defaultMeshUser.get();
 }
 
 bool KX_GameObject::Renderable(int layer) const
 {
-	return (m_meshUser != nullptr) && m_bVisible && (layer == 0 || m_layer & layer);
+	return (m_currentMeshUser != nullptr) && m_bVisible && (layer == 0 || m_layer & layer);
 }
 
 void KX_GameObject::SetLodManager(KX_LodManager *lodManager)
 {
-	// Reset lod level to avoid overflow index in KX_LodManager::GetLevel.
-	m_currentLodLevel = 0;
-
 	// Restore object original mesh.
-	if (!lodManager && m_lodManager && m_lodManager->GetLevelCount() > 0) {
-		KX_Mesh *origmesh = m_lodManager->GetLevel(0).GetMesh();
-		ReplaceMesh(origmesh, true, false);
+	if (!lodManager && m_lodUser.Valid()) {
+		SetCurrentMeshUser(m_defaultMeshUser.get());
 	}
 
-	if (m_lodManager) {
-		m_lodManager->Release();
-	}
-
-	m_lodManager = lodManager;
-
-	if (m_lodManager) {
-		m_lodManager->AddRef();
-	}
+	m_lodUser = KX_LodUser(lodManager);
 }
 
 KX_LodManager *KX_GameObject::GetLodManager() const
 {
-	return m_lodManager;
+	return m_lodUser.GetManager();
 }
 
 void KX_GameObject::UpdateLod(KX_Scene *scene, const mt::vec3& cam_pos, float lodfactor)
 {
-	if (!m_lodManager) {
+	if (!m_lodUser.Valid()) {
 		return;
 	}
 
 	const float distance2 = (NodeGetWorldPosition() - cam_pos).LengthSquared() * (lodfactor * lodfactor);
-	const KX_LodLevel& lodLevel = m_lodManager->GetLevel(scene, m_currentLodLevel, distance2);
+	RAS_MeshUser *meshUser = m_lodUser.GetMesh(m_clientInfo, scene, distance2);
 
-	KX_Mesh *mesh = lodLevel.GetMesh();
-	if (mesh != m_meshes.front()) {
-		ReplaceMesh(mesh, true, false);
+	if (meshUser && meshUser != m_currentMeshUser) {
+		SetCurrentMeshUser(meshUser);
 	}
-
-	m_currentLodLevel = lodLevel.GetLevel();
 }
 
 void KX_GameObject::UpdateActivity(float distance)
@@ -1385,11 +1360,11 @@ void KX_GameObject::SetNode(SG_Node *node)
 
 void KX_GameObject::UpdateBounds(bool force)
 {
-	if ((!m_autoUpdateBounds && !force) || !m_meshUser) {
+	if ((!m_autoUpdateBounds && !force) || !m_currentMeshUser) {
 		return;
 	}
 
-	RAS_BoundingBox *boundingBox = m_meshUser->GetBoundingBox();
+	RAS_BoundingBox *boundingBox = m_currentMeshUser->GetBoundingBox();
 	if (!boundingBox || (!boundingBox->GetModified() && !force)) {
 		return;
 	}
@@ -1982,7 +1957,7 @@ PyMethodDef KX_GameObject::Methods[] = {
 };
 
 PyAttributeDef KX_GameObject::Attributes[] = {
-	EXP_PYATTRIBUTE_SHORT_RO("currentLodLevel", KX_GameObject, m_currentLodLevel),
+// 	EXP_PYATTRIBUTE_SHORT_RO("currentLodLevel", KX_GameObject, m_currentLodLevel), // TODO
 	EXP_PYATTRIBUTE_RW_FUNCTION("lodManager", KX_GameObject, pyattr_get_lodManager, pyattr_set_lodManager),
 	EXP_PYATTRIBUTE_RW_FUNCTION("name",     KX_GameObject, pyattr_get_name, pyattr_set_name),
 	EXP_PYATTRIBUTE_RO_FUNCTION("parent",   KX_GameObject, pyattr_get_parent),
@@ -3231,7 +3206,7 @@ PyObject *KX_GameObject::pyattr_get_meshes(EXP_PyObjectPlus *self_v, const EXP_P
 PyObject *KX_GameObject::pyattr_get_batchGroup(EXP_PyObjectPlus *self_v, const EXP_PYATTRIBUTE_DEF *attrdef)
 {
 	KX_GameObject *self = static_cast<KX_GameObject *>(self_v);
-	RAS_MeshUser *meshUser = self->GetMeshUser();
+	RAS_MeshUser *meshUser = self->GetDefaultMeshUser();
 	if (!meshUser) {
 		Py_RETURN_NONE;
 	}
@@ -3417,8 +3392,9 @@ int KX_GameObject::pyattr_set_debugRecursive(EXP_PyObjectPlus *self_v, const EXP
 PyObject *KX_GameObject::pyattr_get_lodManager(EXP_PyObjectPlus *self_v, const EXP_PYATTRIBUTE_DEF *attrdef)
 {
 	KX_GameObject *self = static_cast<KX_GameObject *>(self_v);
+	KX_LodManager *lodManager = self->GetLodManager();
 
-	return (self->m_lodManager) ? self->m_lodManager->GetProxy() : Py_None;
+	return (lodManager) ? lodManager->GetProxy() : Py_None;
 }
 
 int KX_GameObject::pyattr_set_lodManager(EXP_PyObjectPlus *self_v, const EXP_PYATTRIBUTE_DEF *attrdef, PyObject *value)

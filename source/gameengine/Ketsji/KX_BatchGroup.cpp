@@ -56,7 +56,7 @@ EXP_ListValue<KX_GameObject> *KX_BatchGroup::GetObjects() const
 void KX_BatchGroup::MergeObjects(const std::vector<KX_GameObject *>& objects)
 {
 	for (KX_GameObject *gameobj : objects) {
-		RAS_MeshUser *meshUser = gameobj->GetMeshUser();
+		RAS_MeshUser *meshUser = gameobj->GetDefaultMeshUser();
 
 		if (!meshUser) {
 			CM_Error("object \"" << gameobj->GetName() << "\" doesn't contain a mesh");
@@ -85,7 +85,7 @@ void KX_BatchGroup::SplitObjects(const std::vector<KX_GameObject *>& objects)
 	AddMeshUser();
 
 	for (KX_GameObject *gameobj : objects) {
-		RAS_MeshUser *meshUser = gameobj->GetMeshUser();
+		RAS_MeshUser *meshUser = gameobj->GetDefaultMeshUser();
 
 		if (!meshUser) {
 			CM_Error("object \"" << gameobj->GetName() << "\" doesn't contain a mesh");
