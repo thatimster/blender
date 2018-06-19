@@ -829,6 +829,20 @@ typedef struct RecastData {
 #define RC_PARTITION_MONOTONE 1
 #define RC_PARTITION_LAYERS 2
 
+typedef struct RenderAttachment {
+	short type;
+	short size;
+	int hdr;
+	char name[64];
+} RenderAttachment;
+
+/* RenderAttachment.type */
+#define GAME_ATTACHMENT_CUSTOM 0
+#define GAME_ATTACHMENT_NORMAL 1
+#define GAME_ATTACHMENT_ALBEDO 2
+
+#define GAME_ATTACHMENT_COUNT 7
+
 typedef struct GameData {
 
 	/* standalone player */
@@ -873,6 +887,11 @@ typedef struct GameData {
 	/* Scene LoD */
 	short lodflag, pad2;
 	int scehysteresis;
+
+	/* Render attachments */
+	RenderAttachment *attachments[7];
+	short activeAttachment;
+	short pad[3];
 } GameData;
 
 /* GameData.stereoflag */
@@ -1675,10 +1694,6 @@ typedef struct Scene {
 	/* User-Defined KeyingSets */
 	int active_keyingset;			/* index of the active KeyingSet. first KeyingSet has index 1, 'none' active is 0, 'add new' is -1 */
 	ListBase keyingsets;			/* KeyingSets for this scene */
-	
-	/* Game Settings */
-	struct GameFraming framing  DNA_DEPRECATED; // XXX  deprecated since 2.5
-	struct GameData gm;
 
 	/* Units */
 	struct UnitSettings unit;
@@ -1694,6 +1709,10 @@ typedef struct Scene {
 
 	uint64_t customdata_mask;	/* XXX. runtime flag for drawing, actually belongs in the window, only used by BKE_object_handle_update() */
 	uint64_t customdata_mask_modal; /* XXX. same as above but for temp operator use (gl renders) */
+
+	/* Game Settings */
+	struct GameFraming framing  DNA_DEPRECATED; // XXX  deprecated since 2.5
+	struct GameData gm;
 
 	/* Color Management */
 	ColorManagedViewSettings view_settings;
