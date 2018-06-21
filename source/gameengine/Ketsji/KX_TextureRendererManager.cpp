@@ -106,7 +106,7 @@ void KX_TextureRendererManager::AddRenderer(RendererType type, RAS_Texture *text
 	m_renderers.push_back(renderer);
 }
 
-void KX_TextureRendererManager::RenderRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
+KX_TextureRenderData KX_TextureRendererManager::ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
 		const std::vector<const KX_CameraRenderData *>& cameraDatas)
 {
 	KX_GameObject *viewpoint = renderer->GetViewpointObject();
@@ -141,10 +141,9 @@ void KX_TextureRendererManager::RenderRenderer(RAS_Rasterizer *rasty, KX_Texture
 		 */
 
 		const KX_CameraRenderData *cameraData = cameraDatas[layer];
-		KX_Camera *sceneCamera = cameraData->m_renderCamera;
 
 		// Set camera setting shared by all the renderer's faces.
-		if (!renderer->Prepare(sceneCamera, m_camera)) {
+		if (!renderer->Prepare(cameraData->m_viewMatrix, m_camera)) {
 			continue;
 		}
 
@@ -152,8 +151,8 @@ void KX_TextureRendererManager::RenderRenderer(RAS_Rasterizer *rasty, KX_Texture
 		* or if the projection matrix is not computed yet,
 		* we have to compute projection matrix.
 		*/
-		const mt::mat4 projmat = renderer->GetProjectionMatrix(rasty, m_scene, sceneCamera,
-				cameraData->m_viewport, cameraData->m_area, cameraData->m_stereoMode, cameraData->m_eye);
+		const mt::mat4 projmat = renderer->GetProjectionMatrix(rasty, cameraData->m_frameFrustum,
+				cameraData->m_stereoMode, cameraData->m_eye);
 		m_camera->SetProjectionMatrix(projmat);
 		rasty->SetProjectionMatrix(projmat);
 
@@ -198,9 +197,9 @@ void KX_TextureRendererManager::RenderRenderer(RAS_Rasterizer *rasty, KX_Texture
 	viewpoint->SetVisible(visible, false);
 }
 
-void KX_TextureRendererManager::Render(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData)
+void KX_TextureRendererManager::ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData)
 {
-	if (m_renderers.empty() || rasty->GetDrawingMode() != RAS_Rasterizer::RAS_TEXTURED) {
+	if (m_renderers.empty()) {
 		return;
 	}
 
@@ -215,14 +214,9 @@ void KX_TextureRendererManager::Render(RAS_Rasterizer *rasty, const KX_SceneRend
 		}
 	}
 
-	// Disable scissor to not bother with scissor box.
-	rasty->Disable(RAS_Rasterizer::RAS_SCISSOR_TEST);
-
 	for (KX_TextureRenderer *renderer : m_renderers) {
 		RenderRenderer(rasty, renderer, cameraDatas);
 	}
-
-	rasty->Enable(RAS_Rasterizer::RAS_SCISSOR_TEST);
 }
 
 void KX_TextureRendererManager::Merge(KX_TextureRendererManager *other)

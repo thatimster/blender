@@ -37,6 +37,7 @@
 
 #include "SG_Frustum.h"
 
+#include "RAS_FramingManager.h"
 #include "RAS_CameraData.h"
 
 #ifdef WITH_PYTHON
@@ -71,16 +72,7 @@ protected:
 	 * has changed - the clip planes (m_planes) will have to be
 	 * regenerated.
 	 */
-	bool         m_dirty;
-	/**
-	 * true if the frustum planes have been normalized.
-	 */
-	bool         m_normalized;
-	
-	/**
-	 * View Frustum clip planes.
-	 */
-	mt::vec4   m_planes[6];
+	bool m_dirtyFrustum;
 	
 	/**
 	 * This camera is frustum culling.
@@ -89,9 +81,9 @@ protected:
 	bool         m_frustum_culling;
 	
 	/**
-	 * true if this camera has a valid projection matrix.
+	 * true if this camera has a invalid projection matrix.
 	 */
-	bool         m_set_projection_matrix;
+	bool m_dirtyProjection;
 
 	/** Distance factor for level of detail*/
 	float m_lodDistanceFactor;
@@ -104,8 +96,10 @@ protected:
 	 */
 	bool m_showDebugCameraFrustum;
 
+	// Frustum relative to the render frame used to get the projection matrix.
+	RAS_FrameFrustum m_frameFrustum;
 	SG_Frustum m_frustum;
-
+	
 	void ExtractFrustum();
 
 public:
@@ -144,7 +138,7 @@ public:
 	 *  data (eg lens, near plane, far plane) and require the projection matrix to be
 	 *  recalculated.
 	 */
-	void				InvalidateProjectionMatrix(bool valid = false);
+	void				InvalidateProjectionMatrix();
 	
 	/** Gets the modelview matrix that is used by the rasterizer. 
 	 *  \warning If the Camera is a dynamic object then this method may return garbage.  Use GetWorldToCamera() instead.
@@ -186,6 +180,9 @@ public:
 
 	bool GetActivityCulling() const;
 	void SetActivityCulling(bool enable);
+
+	const RAS_FrameFrustum& GetFrameFrustum() const;
+	void SetFrameFrustum(const RAS_FrameFrustum& frameFrustum);
 
 	const SG_Frustum& GetFrustum();
 

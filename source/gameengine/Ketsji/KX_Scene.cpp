@@ -69,6 +69,7 @@
 #include "RAS_BoundingBoxManager.h"
 #include "RAS_BucketManager.h"
 #include "RAS_Deformer.h"
+#include "RAS_ILightObject.h"
 
 #include "EXP_FloatValue.h"
 #include "SCA_IController.h"
@@ -1109,8 +1110,13 @@ void KX_Scene::PhysicsCullingCallback(KX_ClientObjectInfo *objectInfo, void *cul
 
 std::vector<KX_GameObject *> KX_Scene::CalculateVisibleMeshes(KX_Camera *cam, int layer)
 {
+	return CalculateVisibleMeshes(cam->GetFrustumCulling(), cam->GetFrustum(), layer);
+}
+
+std::vector<KX_GameObject *> KX_Scene::CalculateVisibleMeshes(bool frustumCulling, const SG_Frustum& frustum, int layer)
+{
 	std::vector<KX_GameObject *> objects;
-	if (!cam->GetFrustumCulling()) {
+	if (!frustumCulling) {
 		for (KX_GameObject *gameobj : m_objectlist) {
 			gameobj->GetCullingNode().SetCulled(false);
 			objects.push_back(gameobj);
@@ -1118,7 +1124,7 @@ std::vector<KX_GameObject *> KX_Scene::CalculateVisibleMeshes(KX_Camera *cam, in
 		return objects;
 	}
 
-	return CalculateVisibleMeshes(cam->GetFrustum(), layer);
+	return CalculateVisibleMeshes(frustum, layer);
 }
 
 std::vector<KX_GameObject *> KX_Scene::CalculateVisibleMeshes(const SG_Frustum& frustum, int layer)
@@ -1420,18 +1426,63 @@ void KX_Scene::RenderBuckets(const std::vector<KX_GameObject *>& objects, RAS_Ra
 	KX_BlenderMaterial::EndFrame(rasty);
 }
 
-void KX_Scene::RenderTextureRenderers(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData)
+void KX_Scene::UpdateLights(RAS_Rasterizer *rasty)
 {
-	m_rendererManager->Render(rasty, sceneData);
+	for (KX_LightObject *light : m_lightlist) {
+		light->Update();
+	}
+}
+
+std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
+{
+	std::vector<KX_TextureRenderData> textureDatas;
+
+	for (KX_LightObject *light : m_lightlist) {
+		RAS_ILightObject *raslight = light->GetLightData();
+		if (!light->GetVisible() || !raslight->HasShadowBuffer() || !raslight->NeedShadowUpdate()) {
+			continue;
+		}
+
+		mt::mat4 viewmat;
+		mt::mat4 projmat;
+		raslight->GetShadowMatrix(viewmat, projmat);
+		const SG_Frustum frustum(projmat * viewmat);
+
+		KX_TextureRenderData textureData;
+		textureData.m_mode = KX_TextureRenderData::MODE_NONE;
+		textureData.m_clearMode = 
+				(RAS_Rasterizer::ClearBit)(RAS_Rasterizer::RAS_DEPTH_BUFFER_BIT | RAS_Rasterizer::RAS_COLOR_BUFFER_BIT);
+		textureData.m_drawingMode = RAS_Rasterizer::RAS_SHADOW;
+		textureData.m_viewMatrix = viewmat;
+		textureData.m_progMatrix = projmat;
+		textureData.m_camTrans = mt::mat4::ToAffineTransform(viewmat).Inverse();
+		textureData.m_position = light->NodeGetWorldPosition();
+		textureData.m_frustum = frustum;
+		textureData.m_cullingLayer = raslight->GetShadowLayer();
+
+		textureData.m_bind = [raslight]{raslight->BindShadowBuffer();};
+		textureData.m_unbind = [raslight]{raslight->UnbindShadowBuffer();};
+
+		textureDatas.push_back(textureData);
+	}
+
+	return textureDatas;
+}
+
+std::vector<KX_TextureRenderData> KX_Scene::ScheduleTexturesRender(const KX_SceneRenderData& sceneData)
+{
+	return {};
 }
 
 void KX_Scene::UpdateObjectLods(KX_Camera *cam, const std::vector<KX_GameObject *>& objects)
 {
-	const mt::vec3& cam_pos = cam->NodeGetWorldPosition();
-	const float lodfactor = cam->GetLodDistanceFactor();
+	UpdateObjectLods(cam->NodeGetWorldPosition(), cam->GetLodDistanceFactor(), objects);
+}
 
+void KX_Scene::UpdateObjectLods(const mt::vec3& camPos, float lodFactor, const std::vector<KX_GameObject *>& objects)
+{
 	for (KX_GameObject *gameobj : objects) {
-		gameobj->UpdateLod(this, cam_pos, lodfactor);
+		gameobj->UpdateLod(this, camPos, lodFactor);
 	}
 }
 

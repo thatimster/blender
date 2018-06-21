@@ -44,8 +44,8 @@ private:
 	/// The scene we are rendering for.
 	KX_Scene *m_scene;
 
-	/// Render a texture renderer, return true if the render was proceeded.
-	void RenderRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
+	/// Schedule a texture renderer.
+	KX_TextureRenderData ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
 			const std::vector<const KX_CameraRenderData *>& cameraDatas);
 
 public:
@@ -68,8 +68,8 @@ public:
 	*/
 	void AddRenderer(RendererType type, RAS_Texture *texture, KX_GameObject *viewpoint);
 
-	/// Execute all texture renderers.
-	void Render(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData);
+	/// Schedule all texture renderers for rendering.
+	void ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData);
 
 	/// Merge the content of an other renderer manager, used during lib loading.
 	void Merge(KX_TextureRendererManager *other);

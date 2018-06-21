@@ -33,7 +33,6 @@
 #ifndef __KX_KETSJIENGINE_H__
 #define __KX_KETSJIENGINE_H__
 
-#include <string>
 #include "KX_TimeCategoryLogger.h"
 #include "KX_RenderData.h"
 #include "EXP_Python.h"
@@ -43,7 +42,9 @@
 #include "RAS_DebugDraw.h"
 #include "SCA_IInputDevice.h" // For SCA_IInputDevice::SCA_EnumInputs.
 #include "CM_Clock.h"
+
 #include <vector>
+#include <string>
 
 struct TaskScheduler;
 class KX_Scene;
@@ -254,9 +255,11 @@ private:
 	KX_CameraRenderData GetCameraRenderData(KX_Scene *scene, KX_Camera *camera, KX_Camera *overrideCullingCam,
 			const RAS_Rect& displayArea, RAS_Rasterizer::StereoMode stereoMode, RAS_Rasterizer::StereoEye eye,
 			unsigned short viewportIndex);
+	KX_FrameRenderData GetFrameRenderData(RAS_Rasterizer::StereoMode stereoMode, bool useStereo, bool renderPerEye, unsigned short index);
 	/// Compute frame render data per eyes (in case of stereo), scenes and camera.
 	KX_RenderData GetRenderData();
 
+	void RenderTexture(KX_Scene *scene, const KX_TextureRenderData& textureData);
 	void RenderCamera(KX_Scene *scene, const KX_CameraRenderData& cameraFrameData, RAS_OffScreen *offScreen, unsigned short pass, bool isFirstScene);
 	RAS_OffScreen *PostRenderScene(KX_Scene *scene, RAS_OffScreen *inputofs, RAS_OffScreen *targetofs);
 	void RenderDebugProperties();
@@ -329,7 +332,6 @@ public:
 	/// returns true if an update happened to indicate -> Render
 	bool NextFrame();
 	void Render();
-	void RenderShadowBuffers(KX_Scene *scene);
 
 	void StartEngine();
 	void StopEngine();
