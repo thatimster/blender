@@ -53,8 +53,7 @@ public:
 	void ComputeClipPlane(const mt::vec3& mirrorObjWorldPos, const mt::mat3& mirrorObjWorldOri);
 
 	virtual void InvalidateProjectionMatrix();
-	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, KX_Scene *scene, KX_Camera *sceneCamera,
-			const RAS_Rect& viewport, const RAS_Rect& area, RAS_Rasterizer::StereoMode stereoMode, RAS_Rasterizer::StereoEye eye);
+	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderData& cameraData);
 
 	const mt::vec3& GetNormal() const;
 	void SetNormal(const mt::vec3& normal);

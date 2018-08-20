@@ -1459,7 +1459,7 @@ std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
 		textureData.m_position = light->NodeGetWorldPosition();
 		textureData.m_frustum = frustum;
 		textureData.m_cullingLayer = raslight->GetShadowLayer();
-
+		textureData.m_index = 0;
 		textureData.m_bind = [raslight]{raslight->BindShadowBuffer();};
 		textureData.m_unbind = [raslight]{raslight->UnbindShadowBuffer();};
 

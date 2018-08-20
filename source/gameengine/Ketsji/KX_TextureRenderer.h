@@ -83,8 +83,7 @@ public:
 	float GetLodDistanceFactor() const;
 	void SetLodDistanceFactor(float lodfactor);
 
-	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, KX_Scene *scene, KX_Camera *sceneCamera,
-			const RAS_Rect& viewport, const RAS_Rect& area, RAS_Rasterizer::StereoMode stereoMode, RAS_Rasterizer::StereoEye eye) = 0;
+	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderData& cameraData) = 0;
 
 	bool GetEnabled() const;
 	int GetIgnoreLayers() const;

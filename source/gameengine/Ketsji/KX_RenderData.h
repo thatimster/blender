@@ -18,7 +18,7 @@ class KX_Camera;
 // Storing information for off screen rendering of shadow and texture map.
 struct KX_TextureRenderData
 {
-	enum {
+	enum Mode {
 		MODE_NONE = 0,
 		MODE_RENDER_WORLD = (1 << 0),
 		MODE_UPDATE_LOD = (1 << 1)
@@ -36,6 +36,8 @@ struct KX_TextureRenderData
 	unsigned int m_cullingLayer;
 
 	float m_lodFactor;
+
+	unsigned short m_index;
 
 	std::function<void ()> m_bind;
 	std::function<void ()> m_unbind;
@@ -61,6 +63,7 @@ struct KX_CameraRenderData
 
 	RAS_Rasterizer::StereoMode m_stereoMode;
 	RAS_Rasterizer::StereoEye m_eye;
+	float m_focalLength;
 	// Index of the camera in all the scene's cameras rendered.
 	unsigned short m_index;
 };

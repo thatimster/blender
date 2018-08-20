@@ -181,8 +181,8 @@ public:
 	bool GetActivityCulling() const;
 	void SetActivityCulling(bool enable);
 
+	const RAS_FrameFrustum& ComputeFrameFrustum(const RAS_Rect& viewport, const RAS_Rect& area, const RAS_FrameSettings& settings);
 	const RAS_FrameFrustum& GetFrameFrustum() const;
-	void SetFrameFrustum(const RAS_FrameFrustum& frameFrustum);
 
 	const SG_Frustum& GetFrustum();
 

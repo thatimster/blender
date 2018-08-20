@@ -53,8 +53,7 @@ public:
 	virtual std::string GetName();
 
 	virtual void InvalidateProjectionMatrix();
-	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, KX_Scene *scene, KX_Camera *sceneCamera,
-			const RAS_Rect& viewport, const RAS_Rect& area, RAS_Rasterizer::StereoMode stereoMode, RAS_Rasterizer::StereoEye eye);
+	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderData& cameraData);
 
 	virtual LayerUsage EnsureLayers(int viewportCount);
 	virtual bool Prepare(KX_Camera *sceneCamera, KX_Camera *camera);

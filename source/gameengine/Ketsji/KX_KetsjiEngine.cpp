@@ -534,6 +534,7 @@ KX_CameraRenderData KX_KetsjiEngine::GetCameraRenderData(KX_Scene *scene, KX_Cam
 	cameraData.m_lodFactor = cullingcam->GetLodDistanceFactor();
 	cameraData.m_stereoMode = stereoMode;
 	cameraData.m_eye = eye;
+	cameraData.m_focalLength = camera->GetFocalLength();
 
 	return cameraData;
 }
@@ -827,64 +828,14 @@ mt::mat4 KX_KetsjiEngine::GetCameraProjectionMatrix(KX_Scene *scene, KX_Camera *
 		projmat = m_overrideCamProjMat; // TODO default frame frustum
 	}
 	else {
-		RAS_FrameFrustum frustum{};
-		const bool orthographic = !cam->GetCameraData()->m_perspective;
-		const float nearfrust = cam->GetCameraNear();
-		const float farfrust = cam->GetCameraFar();
-		const float focallength = cam->GetFocalLength();
-		const float camzoom = cam->GetZoom();
+		const RAS_FrameFrustum& frustum = cam->ComputeFrameFrustum(viewport, area, scene->GetFramingType());
 
-		if (orthographic) {
-			RAS_FramingManager::ComputeOrtho(
-				scene->GetFramingType(),
-				area,
-				viewport,
-				cam->GetScale(),
-				nearfrust,
-				farfrust,
-				cam->GetSensorFit(),
-				cam->GetShiftHorizontal(),
-				cam->GetShiftVertical(),
-				frustum);
-
-			if (!cam->GetViewport()) {
-				frustum.x1 *= camzoom;
-				frustum.x2 *= camzoom;
-				frustum.y1 *= camzoom;
-				frustum.y2 *= camzoom;
-			}
-		}
-		else {
-			RAS_FramingManager::ComputeFrustum(
-				scene->GetFramingType(),
-				area,
-				viewport,
-				cam->GetLens(),
-				cam->GetSensorWidth(),
-				cam->GetSensorHeight(),
-				cam->GetSensorFit(),
-				cam->GetShiftHorizontal(),
-				cam->GetShiftVertical(),
-				nearfrust,
-				farfrust,
-				frustum);
-
-			if (!cam->GetViewport()) {
-				frustum.x1 *= camzoom;
-				frustum.x2 *= camzoom;
-				frustum.y1 *= camzoom;
-				frustum.y2 *= camzoom;
-			}
-		}
-
-		cam->SetFrameFrustum(frustum);
-
-		if (orthographic) {
-			projmat = m_rasterizer->GetOrthoMatrix(
+		if (cam->GetCameraData()->m_perspective) {
+			projmat = m_rasterizer->GetFrustumMatrix(stereoMode, eye, cam->GetFocalLength(),
 					frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
 		}
 		else {
-			projmat = m_rasterizer->GetFrustumMatrix(stereoMode, eye, focallength,
+			projmat = m_rasterizer->GetOrthoMatrix(
 					frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
 		}
 	}
@@ -926,7 +877,7 @@ void KX_KetsjiEngine::RenderTexture(KX_Scene *scene, const KX_TextureRenderData&
 		worldInfo->RenderBackground(m_rasterizer);
 	}
 
-	scene->RenderBuckets(objects, textureData.m_drawingMode, textureData.m_camTrans, 0, m_rasterizer, nullptr);
+	scene->RenderBuckets(objects, textureData.m_drawingMode, textureData.m_camTrans, textureData.m_index, m_rasterizer, nullptr);
 
 	textureData.m_unbind();
 

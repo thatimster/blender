@@ -39,12 +39,8 @@
 
 #include "CM_Message.h"
 
-KX_TextureRendererManager::KX_TextureRendererManager(KX_Scene *scene)
-	:m_scene(scene)
+KX_TextureRendererManager::KX_TextureRendererManager()
 {
-	const RAS_CameraData& camdata = RAS_CameraData();
-	m_camera = new KX_Camera(m_scene, KX_Scene::m_callbacks, camdata, true);
-	m_camera->SetName("__renderer_cam__");
 }
 
 KX_TextureRendererManager::~KX_TextureRendererManager()
@@ -52,8 +48,6 @@ KX_TextureRendererManager::~KX_TextureRendererManager()
 	for (KX_TextureRenderer *renderer : m_renderers) {
 		delete renderer;
 	}
-
-	m_camera->Release();
 }
 
 void KX_TextureRendererManager::InvalidateViewpoint(KX_GameObject *gameobj)
@@ -106,25 +100,23 @@ void KX_TextureRendererManager::AddRenderer(RendererType type, RAS_Texture *text
 	m_renderers.push_back(renderer);
 }
 
-KX_TextureRenderData KX_TextureRendererManager::ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
+std::vector<KX_TextureRenderData> KX_TextureRendererManager::ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
 		const std::vector<const KX_CameraRenderData *>& cameraDatas)
 {
 	KX_GameObject *viewpoint = renderer->GetViewpointObject();
 	// Doesn't need (or can) update.
 	if (!renderer->NeedUpdate() || !renderer->GetEnabled() || !viewpoint) {
-		return;
+		return {};
 	}
 
 	const int visibleLayers = ~renderer->GetIgnoreLayers();
+	const float lodFactor = renderer->GetLodDistanceFactor();
 
 	const bool visible = viewpoint->GetVisible();
 	/* We hide the viewpoint object in the case backface culling is disabled -> we can't see through
 	 * the object faces if the camera is inside the gameobject.
 	 */
 	viewpoint->SetVisible(false, false);
-
-	// Set camera lod distance factor from renderer value.
-	m_camera->SetLodDistanceFactor(renderer->GetLodDistanceFactor());
 
 	// Ensure the number of layers for all viewports or use a unique layer.
 	const unsigned short numViewport = cameraDatas.size();
@@ -151,10 +143,7 @@ KX_TextureRenderData KX_TextureRendererManager::ScheduleRenderer(RAS_Rasterizer 
 		* or if the projection matrix is not computed yet,
 		* we have to compute projection matrix.
 		*/
-		const mt::mat4 projmat = renderer->GetProjectionMatrix(rasty, cameraData->m_frameFrustum,
-				cameraData->m_stereoMode, cameraData->m_eye);
-		m_camera->SetProjectionMatrix(projmat);
-		rasty->SetProjectionMatrix(projmat);
+		const mt::mat4 projmat = renderer->GetProjectionMatrix(rasty, *cameraData);
 
 		// Begin rendering stuff
 		renderer->BeginRender(rasty, layer);
@@ -165,30 +154,25 @@ KX_TextureRenderData KX_TextureRendererManager::ScheduleRenderer(RAS_Rasterizer 
 				continue;
 			}
 
-			m_camera->NodeUpdate();
+			KX_TextureRenderData textureData;
+			textureData.m_mode = (KX_TextureRenderData::Mode)(KX_TextureRenderData::MODE_RENDER_WORLD | KX_TextureRenderData::MODE_UPDATE_LOD);
+			textureData.m_clearMode = 
+					(RAS_Rasterizer::ClearBit)(RAS_Rasterizer::RAS_DEPTH_BUFFER_BIT | RAS_Rasterizer::RAS_COLOR_BUFFER_BIT);
+			textureData.m_drawingMode = RAS_Rasterizer::RAS_RENDERER;
+			textureData.m_viewMatrix = viewmat;
+			textureData.m_progMatrix = projmat;
+			textureData.m_camTrans = mt::mat4::ToAffineTransform(viewmat).Inverse();
+			textureData.m_position = light->NodeGetWorldPosition();
+			textureData.m_frustum = frustum;
+			textureData.m_cullingLayer = visibleLayers;
+			textureData.m_index = layer;
+			textureData.m_bind = [raslight]{raslight->BindShadowBuffer();};
+			textureData.m_unbind = [raslight]{raslight->UnbindShadowBuffer();};
 
 			const mt::mat3x4 camtrans(m_camera->GetWorldToCamera());
 			const mt::mat4 viewmat = mt::mat4::FromAffineTransform(camtrans);
-			rasty->SetViewMatrix(viewmat);
-			m_camera->SetModelviewMatrix(viewmat);
 
 			renderer->BeginRenderFace(rasty, layer, face);
-
-			const std::vector<KX_GameObject *> objects = m_scene->CalculateVisibleMeshes(m_camera, visibleLayers);
-
-			/* Updating the lod per face is normally not expensive because a cube map normally show every objects
-			* but here we update only visible object of a face including the clip end and start.
-			*/
-			m_scene->UpdateObjectLods(m_camera, objects);
-
-			/* Update animations to use the culling of each faces, BL_ActionManager avoid redundants
-			* updates internally. */
-			KX_GetActiveEngine()->UpdateAnimations(m_scene);
-
-			// Now the objects are culled and we can render the scene.
-			m_scene->GetWorldInfo()->RenderBackground(rasty);
-
-			m_scene->RenderBuckets(objects, RAS_Rasterizer::RAS_RENDERER, camtrans, layer, rasty, nullptr);
 		}
 
 		renderer->EndRender(rasty, layer);

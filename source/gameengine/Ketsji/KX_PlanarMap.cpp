@@ -74,58 +74,19 @@ void KX_PlanarMap::InvalidateProjectionMatrix()
 {
 }
 
-mt::mat4 KX_PlanarMap::GetProjectionMatrix(RAS_Rasterizer *rasty, KX_Scene *scene, KX_Camera *sceneCamera,
-	const RAS_Rect& viewport, const RAS_Rect& area, RAS_Rasterizer::StereoMode stereoMode, RAS_Rasterizer::StereoEye eye)
+mt::mat4 KX_PlanarMap::GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderData& cameraData)
 {
+	RAS_FrameFrustum frustum = cameraData.m_frameFrustum;
+	frustum.camnear = m_clipStart;
+	frustum.camfar = m_clipEnd;
+
 	mt::mat4 projection;
-
-	RAS_FrameFrustum frustum;
-	const bool orthographic = !sceneCamera->GetCameraData()->m_perspective;
-	const float focallength = sceneCamera->GetFocalLength();
-
-	if (orthographic) {
-		RAS_FramingManager::ComputeOrtho(
-			scene->GetFramingType(),
-			area,
-			viewport,
-			sceneCamera->GetScale(),
-			m_clipStart,
-			m_clipEnd,
-			sceneCamera->GetSensorFit(),
-			sceneCamera->GetShiftHorizontal(),
-			sceneCamera->GetShiftVertical(),
-			frustum);
+	if (cameraData.m_perspective) {
+		projection = rasty->GetFrustumMatrix(cameraData.m_stereoMode, cameraData.m_eye, cameraData.m_focalLength,
+				frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
 	}
 	else {
-		RAS_FramingManager::ComputeFrustum(
-			scene->GetFramingType(),
-			area,
-			viewport,
-			sceneCamera->GetLens(),
-			sceneCamera->GetSensorWidth(),
-			sceneCamera->GetSensorHeight(),
-			sceneCamera->GetSensorFit(),
-			sceneCamera->GetShiftHorizontal(),
-			sceneCamera->GetShiftVertical(),
-			m_clipStart,
-			m_clipEnd,
-			frustum);
-	}
-
-	if (!sceneCamera->GetViewport()) {
-		const float camzoom = sceneCamera->GetZoom();
-		frustum.x1 *= camzoom;
-		frustum.x2 *= camzoom;
-		frustum.y1 *= camzoom;
-		frustum.y2 *= camzoom;
-	}
-
-	if (orthographic) {
 		projection = rasty->GetOrthoMatrix(
-			frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
-	}
-	else {
-		projection = rasty->GetFrustumMatrix(stereoMode, eye, focallength,
 				frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
 	}
 

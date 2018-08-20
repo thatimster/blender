@@ -257,14 +257,45 @@ void KX_Camera::ExtractFrustum()
 	}
 }
 
-const RAS_FrameFrustum& KX_Camera::GetFrameFrustum() const
+const RAS_FrameFrustum& KX_Camera::ComputeFrameFrustum(const RAS_Rect& viewport, const RAS_Rect& area, const RAS_FrameSettings& settings)
 {
-	return m_frameFrustum;
-}
+	if (m_camdata.m_perspective) {
+		RAS_FramingManager::ComputeFrustum(
+			settings,
+			area,
+			viewport,
+			m_camdata.m_lens,
+			m_camdata.m_sensor_x,
+			m_camdata.m_sensor_y,
+			m_camdata.m_sensor_fit,
+			m_camdata.m_shift_x,
+			m_camdata.m_shift_y,
+			m_camdata.m_clipstart,
+			m_camdata.m_clipend,
+			m_frameFrustum);
+	}
+	else {
+		RAS_FramingManager::ComputeOrtho(
+			settings,
+			area,
+			viewport,
+			m_camdata.m_scale,
+			m_camdata.m_clipstart,
+			m_camdata.m_clipend,
+			m_camdata.m_sensor_fit,
+			m_camdata.m_shift_x,
+			m_camdata.m_shift_y,
+			m_frameFrustum);
+	}
 
-void KX_Camera::SetFrameFrustum(const RAS_FrameFrustum& frameFrustum)
-{
-	m_frameFrustum = frameFrustum;
+	if (!m_camdata.m_viewport) {
+		m_frameFrustum.x1 *= m_camdata.m_zoom;
+		m_frameFrustum.x2 *= m_camdata.m_zoom;
+		m_frameFrustum.y1 *= m_camdata.m_zoom;
+		m_frameFrustum.y2 *= m_camdata.m_zoom;
+	}
+
+	return m_frameFrustum;
 }
 
 const SG_Frustum& KX_Camera::GetFrustum()
