@@ -29,6 +29,7 @@
 
 #include "EXP_Value.h"
 #include "RAS_TextureRenderer.h"
+#include "KX_RenderData.h"
 
 class KX_GameObject;
 class KX_Camera;
@@ -96,10 +97,8 @@ public:
 	// Return true when the texture renderer need to be updated.
 	bool NeedUpdate();
 
-	/// Setup camera position and orientation shared by all the faces, returns true when the render will be made.
-	virtual bool Prepare(KX_Camera *sceneCamera, KX_Camera *camera) = 0;
 	/// Setup camera position and orientation unique per faces, returns true when the render will be made.
-	virtual bool PrepareFace(KX_Camera *camera, unsigned short index) = 0;
+	virtual bool PrepareFace(const mt::mat4& sceneViewMat, unsigned short face, mt::mat3x4& camTrans) = 0;
 
 #ifdef WITH_PYTHON
 	EXP_PYMETHOD_DOC_NOARGS(KX_TextureRenderer, update);

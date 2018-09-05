@@ -93,23 +93,9 @@ mt::mat4 KX_PlanarMap::GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_Camer
 	return projection;
 }
 
-void KX_PlanarMap::BeginRender(RAS_Rasterizer* rasty, unsigned short layer)
-{
-	RAS_TextureRenderer::BeginRender(rasty, layer);
-
-	rasty->SetInvertFrontFace((m_type == REFLECTION));
-}
-
-void KX_PlanarMap::EndRender(RAS_Rasterizer* rasty, unsigned short layer)
-{
-	RAS_TextureRenderer::EndRender(rasty, layer);
-
-	rasty->SetInvertFrontFace(false);
-	rasty->DisableClipPlane(0);
-}
-
 void KX_PlanarMap::BeginRenderFace(RAS_Rasterizer* rasty, unsigned short layer, unsigned short face)
 {
+	RAS_TextureRenderer::BeginRender(rasty, layer);
 	RAS_TextureRenderer::BeginRenderFace(rasty, layer, face);
 
 	switch (m_type) {
@@ -124,6 +110,16 @@ void KX_PlanarMap::BeginRenderFace(RAS_Rasterizer* rasty, unsigned short layer, 
 			break;
 		}
 	}
+
+	rasty->SetInvertFrontFace((m_type == REFLECTION));
+}
+
+void KX_PlanarMap::EndRenderFace(RAS_Rasterizer* rasty, unsigned short layer, unsigned short face)
+{
+	rasty->SetInvertFrontFace(false);
+	rasty->DisableClipPlane(0);
+
+	RAS_TextureRenderer::EndRender(rasty, layer);
 }
 
 const mt::vec3& KX_PlanarMap::GetNormal() const
@@ -151,15 +147,15 @@ RAS_TextureRenderer::LayerUsage KX_PlanarMap::EnsureLayers(int viewportCount)
 	return m_layerUsage;
 }
 
-bool KX_PlanarMap::Prepare(KX_Camera *sceneCamera, KX_Camera *camera)
+bool KX_PlanarMap::PrepareFace(const mt::mat4& sceneViewMat, unsigned short face, mt::mat3x4& camTrans)
 {
 	// Compute camera position and orientation.
 	const mt::mat3& mirrorObjWorldOri = m_viewpointObject->NodeGetWorldOrientation();
 	const mt::vec3& mirrorObjWorldPos = m_viewpointObject->NodeGetWorldPosition();
+	const mt::mat4 cameraMat = sceneViewMat.Inverse();
 
 	// Use the position and orientation from the view matrix to take care of stereo.
-	const mt::mat4& viewMat = sceneCamera->GetModelviewMatrix().Inverse();
-	mt::vec3 cameraWorldPos = viewMat.TranslationVector3D();
+	mt::vec3 cameraWorldPos = cameraMat.TranslationVector3D();
 
 	// Update clip plane to possible new normal or viewpoint object.
 	ComputeClipPlane(mirrorObjWorldPos, mirrorObjWorldOri);
@@ -175,7 +171,7 @@ bool KX_PlanarMap::Prepare(KX_Camera *sceneCamera, KX_Camera *camera)
 	}
 
 	const mt::mat3 mirrorObjWorldOriInverse = mirrorObjWorldOri.Inverse();
-	mt::mat3 cameraWorldOri = mt::mat3::ToRotationMatrix(viewMat);
+	mt::mat3 cameraWorldOri = mt::mat3::ToRotationMatrix(cameraMat);
 
 	static const mt::mat3 unmir(1.0f, 0.0f, 0.0f,
 	                            0.0f, 1.0f, 0.0f,
@@ -191,14 +187,8 @@ bool KX_PlanarMap::Prepare(KX_Camera *sceneCamera, KX_Camera *camera)
 	}
 
 	// Set render camera position and orientation.
-	camera->NodeSetWorldPosition(cameraWorldPos);
-	camera->NodeSetGlobalOrientation(cameraWorldOri);
+	camTrans = mt::mat3x4(cameraWorldOri, cameraWorldPos);
 
-	return true;
-}
-
-bool KX_PlanarMap::PrepareFace(KX_Camera *camera, unsigned short index)
-{
 	return true;
 }
 

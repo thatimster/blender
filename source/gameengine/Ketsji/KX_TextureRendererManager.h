@@ -41,7 +41,7 @@ private:
 	std::vector<KX_TextureRenderer *> m_renderers;
 
 	/// Schedule a texture renderer.
-	std::vector<KX_TextureRenderData> ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
+	KX_TextureRenderDataList ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
 			const std::vector<const KX_CameraRenderData *>& cameraDatas);
 
 public:
@@ -65,7 +65,7 @@ public:
 	void AddRenderer(RendererType type, RAS_Texture *texture, KX_GameObject *viewpoint);
 
 	/// Schedule all texture renderers for rendering.
-	std::vector<KX_TextureRenderData> ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData);
+	KX_TextureRenderDataList ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData);
 
 	/// Merge the content of an other renderer manager, used during lib loading.
 	void Merge(KX_TextureRendererManager *other);

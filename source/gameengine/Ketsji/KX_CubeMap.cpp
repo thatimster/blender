@@ -109,18 +109,11 @@ RAS_TextureRenderer::LayerUsage KX_CubeMap::EnsureLayers(int viewportCount)
 	return m_layerUsage;
 }
 
-bool KX_CubeMap::Prepare(KX_Camera *sceneCamera, KX_Camera *camera)
+bool KX_CubeMap::PrepareFace(const mt::mat4& sceneViewMat, unsigned short face, mt::mat3x4& camTrans)
 {
 	const mt::vec3& position = m_viewpointObject->NodeGetWorldPosition();
 
-	camera->NodeSetWorldPosition(position);
-
-	return true;
-}
-
-bool KX_CubeMap::PrepareFace(KX_Camera *camera, unsigned short index)
-{
-	camera->NodeSetGlobalOrientation(faceViewMatrices3x3[index]);
+	camTrans = mt::mat3x4(faceViewMatrices3x3[face], position);
 
 	return true;
 }

@@ -39,9 +39,11 @@ struct KX_TextureRenderData
 
 	unsigned short m_index;
 
-	std::function<void ()> m_bind;
-	std::function<void ()> m_unbind;
+	std::function<void (RAS_Rasterizer *)> m_bind;
+	std::function<void (RAS_Rasterizer *)> m_unbind;
 };
+
+using KX_TextureRenderDataList = std::vector<KX_TextureRenderData>;
 
 struct KX_CameraRenderData
 {
@@ -68,13 +70,17 @@ struct KX_CameraRenderData
 	unsigned short m_index;
 };
 
+using KX_CameraRenderDataList = std::vector<KX_CameraRenderData>;
+
 struct KX_SceneRenderData
 {
 	KX_Scene *m_scene;
-	std::vector<KX_TextureRenderData> m_textureDataList;
+	KX_TextureRenderDataList m_textureDataList;
 	// Use multiple list of cameras in case of per eye stereo.
-	std::vector<KX_CameraRenderData> m_cameraDataList[RAS_Rasterizer::RAS_STEREO_MAXEYE];
+	KX_CameraRenderDataList m_cameraDataList[RAS_Rasterizer::RAS_STEREO_MAXEYE];
 };
+
+using KX_SceneRenderDataList = std::vector<KX_SceneRenderData>;
 
 /// Data used to render a frame.
 struct KX_FrameRenderData
@@ -83,13 +89,15 @@ struct KX_FrameRenderData
 	std::vector<RAS_Rasterizer::StereoEye> m_eyes;
 };
 
+using KX_FrameRenderDataList = std::vector<KX_FrameRenderData>;
+
 struct KX_RenderData
 {
 	RAS_FrameSettings m_frameSettings;
 	RAS_Rasterizer::StereoMode m_stereoMode;
 	bool m_renderPerEye;
-	std::vector<KX_SceneRenderData> m_sceneDataList;
-	std::vector<KX_FrameRenderData> m_frameDataList;
+	KX_SceneRenderDataList m_sceneDataList;
+	KX_FrameRenderDataList m_frameDataList;
 };
 
 #endif  // __KX_RENDER_DATA_H__

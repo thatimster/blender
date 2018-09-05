@@ -100,7 +100,7 @@ void KX_TextureRendererManager::AddRenderer(RendererType type, RAS_Texture *text
 	m_renderers.push_back(renderer);
 }
 
-std::vector<KX_TextureRenderData> KX_TextureRendererManager::ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
+KX_TextureRenderDataList KX_TextureRendererManager::ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
 		const std::vector<const KX_CameraRenderData *>& cameraDatas)
 {
 	KX_GameObject *viewpoint = renderer->GetViewpointObject();
@@ -113,15 +113,13 @@ std::vector<KX_TextureRenderData> KX_TextureRendererManager::ScheduleRenderer(RA
 	const float lodFactor = renderer->GetLodDistanceFactor();
 
 	const bool visible = viewpoint->GetVisible();
-	/* We hide the viewpoint object in the case backface culling is disabled -> we can't see through
-	 * the object faces if the camera is inside the gameobject.
-	 */
-	viewpoint->SetVisible(false, false);
 
 	// Ensure the number of layers for all viewports or use a unique layer.
 	const unsigned short numViewport = cameraDatas.size();
 	RAS_TextureRenderer::LayerUsage usage = renderer->EnsureLayers(numViewport);
 	const unsigned short numlay = (usage == RAS_TextureRenderer::LAYER_SHARED) ? 1 : numViewport;
+
+	KX_TextureRenderDataList textures;
 
 	for (unsigned short layer = 0; layer < numlay; ++layer) {
 		/* Two cases are possible :
@@ -134,25 +132,21 @@ std::vector<KX_TextureRenderData> KX_TextureRendererManager::ScheduleRenderer(RA
 
 		const KX_CameraRenderData *cameraData = cameraDatas[layer];
 
-		// Set camera setting shared by all the renderer's faces.
-		if (!renderer->Prepare(cameraData->m_viewMatrix, m_camera)) {
-			continue;
-		}
-
 		/* When we update clipstart or clipend values,
 		* or if the projection matrix is not computed yet,
 		* we have to compute projection matrix.
 		*/
 		const mt::mat4 projmat = renderer->GetProjectionMatrix(rasty, *cameraData);
 
-		// Begin rendering stuff
-		renderer->BeginRender(rasty, layer);
-
 		for (unsigned short face = 0, numface = renderer->GetNumFaces(layer); face < numface; ++face) {
+			mt::mat3x4 camtrans;
 			// Set camera settings unique per faces.
-			if (!renderer->PrepareFace(m_camera, face)) {
+			if (!renderer->PrepareFace(cameraData->m_viewMatrix, face, camtrans)) {
 				continue;
 			}
+
+			const mt::mat4 viewmat = mt::mat4::FromAffineTransform(camtrans).Inverse();
+			const SG_Frustum frustum(projmat * viewmat);
 
 			KX_TextureRenderData textureData;
 			textureData.m_mode = (KX_TextureRenderData::Mode)(KX_TextureRenderData::MODE_RENDER_WORLD | KX_TextureRenderData::MODE_UPDATE_LOD);
@@ -161,30 +155,35 @@ std::vector<KX_TextureRenderData> KX_TextureRendererManager::ScheduleRenderer(RA
 			textureData.m_drawingMode = RAS_Rasterizer::RAS_RENDERER;
 			textureData.m_viewMatrix = viewmat;
 			textureData.m_progMatrix = projmat;
-			textureData.m_camTrans = mt::mat4::ToAffineTransform(viewmat).Inverse();
-			textureData.m_position = light->NodeGetWorldPosition();
+			textureData.m_camTrans = camtrans;
+			textureData.m_position = camtrans.TranslationVector3D();
 			textureData.m_frustum = frustum;
 			textureData.m_cullingLayer = visibleLayers;
+			textureData.m_lodFactor = lodFactor;
 			textureData.m_index = layer;
-			textureData.m_bind = [raslight]{raslight->BindShadowBuffer();};
-			textureData.m_unbind = [raslight]{raslight->UnbindShadowBuffer();};
+			textureData.m_bind = [renderer, viewpoint, layer, face](RAS_Rasterizer *rasty){
+				/* We hide the viewpoint object in the case backface culling is disabled -> we can't see through
+				 * the object faces if the camera is inside the gameobject.
+				 */
+				viewpoint->SetVisible(false, false);
+				renderer->BeginRenderFace(rasty, layer, face);
+			};
+			textureData.m_unbind = [renderer, viewpoint, visible, layer, face](RAS_Rasterizer *rasty){
+				renderer->EndRenderFace(rasty, layer, face);
+				viewpoint->SetVisible(visible, false);
+			};
 
-			const mt::mat3x4 camtrans(m_camera->GetWorldToCamera());
-			const mt::mat4 viewmat = mt::mat4::FromAffineTransform(camtrans);
-
-			renderer->BeginRenderFace(rasty, layer, face);
+			textures.push_back(textureData);
 		}
-
-		renderer->EndRender(rasty, layer);
 	}
 
-	viewpoint->SetVisible(visible, false);
+	return textures;
 }
 
-void KX_TextureRendererManager::ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData)
+KX_TextureRenderDataList KX_TextureRendererManager::ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData)
 {
 	if (m_renderers.empty()) {
-		return;
+		return {};
 	}
 
 	// Get the number of viewports.
@@ -198,9 +197,13 @@ void KX_TextureRendererManager::ScheduleRender(RAS_Rasterizer *rasty, const KX_S
 		}
 	}
 
+	KX_TextureRenderDataList allTextures;
 	for (KX_TextureRenderer *renderer : m_renderers) {
-		RenderRenderer(rasty, renderer, cameraDatas);
+		const KX_TextureRenderDataList textures = ScheduleRenderer(rasty, renderer, cameraDatas);
+		allTextures.insert(allTextures.end(), textures.begin(), textures.end());
 	}
+
+	return allTextures;
 }
 
 void KX_TextureRendererManager::Merge(KX_TextureRendererManager *other)

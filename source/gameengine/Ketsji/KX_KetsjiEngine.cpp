@@ -476,7 +476,7 @@ KX_CameraRenderData KX_KetsjiEngine::GetCameraRenderData(KX_Scene *scene, KX_Cam
 		const RAS_Rect& displayArea, RAS_Rasterizer::StereoMode stereoMode, RAS_Rasterizer::StereoEye eye,
 		unsigned short viewportIndex)
 {
-	// Prepare override culling camera of each scenes, we don't manage stereo currently.
+	// Prepare override culling camera of each scenes, we don't manage stereo currently. // TODO
 	/*for (KX_Scene *scene : m_scenes) {
 		KX_Camera *overrideCullingCam = scene->GetOverrideCullingCamera();
 		if (overrideCullingCam) {
@@ -505,6 +505,7 @@ KX_CameraRenderData KX_KetsjiEngine::GetCameraRenderData(KX_Scene *scene, KX_Cam
 	const mt::mat4 projmat = GetCameraProjectionMatrix(scene, camera, stereoMode, eye, viewport, area);
 	camera->SetModelviewMatrix(viewmat);
 	camera->SetProjectionMatrix(projmat);
+
 	cameraData.m_viewMatrix = viewmat;
 	cameraData.m_progMatrix = projmat;
 	cameraData.m_negScale = false; //TODO
@@ -535,6 +536,7 @@ KX_CameraRenderData KX_KetsjiEngine::GetCameraRenderData(KX_Scene *scene, KX_Cam
 	cameraData.m_stereoMode = stereoMode;
 	cameraData.m_eye = eye;
 	cameraData.m_focalLength = camera->GetFocalLength();
+	cameraData.m_index = viewportIndex;
 
 	return cameraData;
 }
@@ -589,6 +591,8 @@ KX_RenderData KX_KetsjiEngine::GetRenderData()
 		displayAreas[eye] = m_rasterizer->GetRenderArea(m_canvas, stereoMode, (RAS_Rasterizer::StereoEye)eye);
 	}
 
+	const bool doTextures = (m_rasterizer->GetDrawingMode() == RAS_Rasterizer::RAS_TEXTURED);
+
 	for (KX_Scene *scene : m_scenes) {
 		KX_SceneRenderData sceneData;
 		sceneData.m_scene = scene;
@@ -607,20 +611,17 @@ KX_RenderData KX_KetsjiEngine::GetRenderData()
 			}
 		}
 
-		renderData.m_sceneDataList.push_back(sceneData);
-	}
-
-	// Schedule texture rendering for shadows and cube/planar map.
-	if (m_rasterizer->GetDrawingMode() == RAS_Rasterizer::RAS_TEXTURED) {
-		for (KX_SceneRenderData& sceneData : renderData.m_sceneDataList) {
-			KX_Scene *scene = sceneData.m_scene;
+		// Schedule texture rendering for shadows and cube/planar map.
+		if (doTextures) {
 			scene->UpdateLights(m_rasterizer);
-			const std::vector<KX_TextureRenderData> shadowData = scene->ScheduleShadowsRender();
-			const std::vector<KX_TextureRenderData> rendererData = scene->ScheduleTexturesRender(sceneData);
+			const KX_TextureRenderDataList shadowData = scene->ScheduleShadowsRender();
+			const KX_TextureRenderDataList rendererData = scene->ScheduleTexturesRender(m_rasterizer, sceneData);
 
-			sceneData.m_textureDataList.insert(sceneData.m_textureDataList.begin(), shadowData.begin(), shadowData.end());
-			sceneData.m_textureDataList.insert(sceneData.m_textureDataList.begin(), rendererData.begin(), rendererData.end());
+			sceneData.m_textureDataList.insert(sceneData.m_textureDataList.end(), shadowData.begin(), shadowData.end());
+			sceneData.m_textureDataList.insert(sceneData.m_textureDataList.end(), rendererData.begin(), rendererData.end());
 		}
+
+		renderData.m_sceneDataList.push_back(sceneData);
 	}
 
 	return renderData;
@@ -862,7 +863,7 @@ void KX_KetsjiEngine::RenderTexture(KX_Scene *scene, const KX_TextureRenderData&
 
 	m_rasterizer->Disable(RAS_Rasterizer::RAS_SCISSOR_TEST);
 
-	textureData.m_bind();
+	textureData.m_bind(m_rasterizer);
 
 	m_rasterizer->Clear(textureData.m_clearMode);
 	// TODO eye ?
@@ -879,12 +880,11 @@ void KX_KetsjiEngine::RenderTexture(KX_Scene *scene, const KX_TextureRenderData&
 
 	scene->RenderBuckets(objects, textureData.m_drawingMode, textureData.m_camTrans, textureData.m_index, m_rasterizer, nullptr);
 
-	textureData.m_unbind();
+	textureData.m_unbind(m_rasterizer);
 
 	m_rasterizer->Enable(RAS_Rasterizer::RAS_SCISSOR_TEST);
 }
 
-// update graphics
 void KX_KetsjiEngine::RenderCamera(KX_Scene *scene, const KX_CameraRenderData& cameraFrameData, RAS_OffScreen *offScreen,
                                    unsigned short pass, bool isFirstScene)
 {

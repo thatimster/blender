@@ -189,7 +189,7 @@ KX_Scene::KX_Scene(SCA_IInputDevice *inputDevice,
 
 	m_networkScene = new KX_NetworkMessageScene(messageManager);
 
-	m_rendererManager = new KX_TextureRendererManager(this);
+	m_rendererManager = new KX_TextureRendererManager();
 	m_bucketmanager = new RAS_BucketManager(KX_TextMaterial::GetSingleton());
 	m_boundingBoxManager = new RAS_BoundingBoxManager();
 
@@ -1460,8 +1460,8 @@ std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
 		textureData.m_frustum = frustum;
 		textureData.m_cullingLayer = raslight->GetShadowLayer();
 		textureData.m_index = 0;
-		textureData.m_bind = [raslight]{raslight->BindShadowBuffer();};
-		textureData.m_unbind = [raslight]{raslight->UnbindShadowBuffer();};
+		textureData.m_bind = [raslight](RAS_Rasterizer *UNUSED(rasty)){raslight->BindShadowBuffer();};
+		textureData.m_unbind = [raslight](RAS_Rasterizer *UNUSED(rasty)){raslight->UnbindShadowBuffer();};
 
 		textureDatas.push_back(textureData);
 	}
@@ -1469,9 +1469,9 @@ std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
 	return textureDatas;
 }
 
-std::vector<KX_TextureRenderData> KX_Scene::ScheduleTexturesRender(const KX_SceneRenderData& sceneData)
+std::vector<KX_TextureRenderData> KX_Scene::ScheduleTexturesRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData)
 {
-	return {};
+	return m_rendererManager->ScheduleRender(rasty, sceneData);
 }
 
 void KX_Scene::UpdateObjectLods(KX_Camera *cam, const std::vector<KX_GameObject *>& objects)

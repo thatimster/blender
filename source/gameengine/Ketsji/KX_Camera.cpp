@@ -298,6 +298,11 @@ const RAS_FrameFrustum& KX_Camera::ComputeFrameFrustum(const RAS_Rect& viewport,
 	return m_frameFrustum;
 }
 
+const RAS_FrameFrustum& KX_Camera::GetFrameFrustum() const
+{
+	return m_frameFrustum;
+}
+
 const SG_Frustum& KX_Camera::GetFrustum()
 {
 	ExtractFrustum();

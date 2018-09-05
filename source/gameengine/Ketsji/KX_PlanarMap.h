@@ -58,13 +58,11 @@ public:
 	const mt::vec3& GetNormal() const;
 	void SetNormal(const mt::vec3& normal);
 
-	virtual void BeginRender(RAS_Rasterizer *rasty, unsigned short layer);
-	virtual void EndRender(RAS_Rasterizer *rasty, unsigned short layer);
 	virtual void BeginRenderFace(RAS_Rasterizer *rasty, unsigned short layer, unsigned short face);
+	virtual void EndRenderFace(RAS_Rasterizer *rasty, unsigned short layer, unsigned short face);
 
 	virtual LayerUsage EnsureLayers(int viewportCount);
-	virtual bool Prepare(KX_Camera *sceneCamera, KX_Camera *camera);
-	virtual bool PrepareFace(KX_Camera *camera, unsigned short index);
+	virtual bool PrepareFace(const mt::mat4& sceneViewMat, unsigned short face, mt::mat3x4& camTrans);
 
 #ifdef WITH_PYTHON
 	static PyObject *pyattr_get_normal(EXP_PyObjectPlus *self_v, const EXP_PYATTRIBUTE_DEF *attrdef);
