@@ -1369,7 +1369,7 @@ void KX_GameObject::UpdateBounds(bool force)
 		return;
 	}
 
-	RAS_Deformer *deformer = GetDeformer();
+	RAS_Deformer *deformer = m_currentMeshUser->GetDeformer();
 	if (deformer) {
 		/** Update all the deformer, not only per material.
 		 * One of the side effect is to clear some flags about AABB calculation.

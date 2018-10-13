@@ -131,23 +131,14 @@ void KX_FontObject::AddMeshUser()
 
 	RAS_BucketManager *bucketManager = GetScene()->GetBucketManager();
 	RAS_DisplayArrayBucket *arrayBucket = bucketManager->GetTextDisplayArrayBucket();
-
-	m_defaultMeshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
-	m_defaultMeshUser->SetFrontFace(!IsNegativeScaling());
-
 	m_defaultMeshUser->NewMeshSlot(arrayBucket);
 }
 
 void KX_FontObject::UpdateBuckets()
 {
-	RAS_TextUser *textUser = static_cast<RAS_TextUser *>(m_defaultMeshUser.get());
+	KX_GameObject::UpdateBuckets();
 
-	// Update datas and add mesh slot to be rendered only if the object is not culled.
-	if (m_sgNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		m_defaultMeshUser->SetMatrix(mt::mat4::FromAffineTransform(NodeGetWorldTransform()));
-		m_defaultMeshUser->SetFrontFace(!IsNegativeScaling());
-		m_sgNode->ClearDirty(SG_Node::DIRTY_RENDER);
-	}
+	RAS_TextUser *textUser = static_cast<RAS_TextUser *>(m_defaultMeshUser.get());
 
 	// HARDCODED MULTIPLICATION FACTOR - this will affect the render resolution directly
 	const float RES = BGE_FONT_RES * m_resolution;
@@ -160,8 +151,6 @@ void KX_FontObject::UpdateBuckets()
 	// Orient the spacing vector
 	mt::vec3 spacing = NodeGetWorldOrientation() * mt::vec3(0.0f, m_fsize * m_line_spacing, 0.0f) * NodeGetWorldScaling()[1];
 
-	textUser->SetLayer(m_layer);
-	textUser->SetColor(m_objectColor);
 	textUser->SetFontId(m_fontid);
 	textUser->SetSize(size);
 	textUser->SetDpi(m_dpi);
@@ -169,7 +158,6 @@ void KX_FontObject::UpdateBuckets()
 	textUser->SetOffset(offset);
 	textUser->SetSpacing(spacing);
 	textUser->SetTexts(m_texts);
-	textUser->ActivateMeshSlots();
 }
 
 void KX_FontObject::SetText(const std::string& text)

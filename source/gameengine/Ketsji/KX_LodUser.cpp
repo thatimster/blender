@@ -74,7 +74,7 @@ RAS_MeshUser *KX_LodUser::GetMesh(KX_ClientObjectInfo& info, KX_Scene *scene, fl
 	if (!m_meshUsers[index]) {
 		KX_Mesh *mesh = level.GetMesh();
 		// TODO deformers ??
-		CM_Debug("new");
+// 		CM_Debug("new");
 		m_meshUsers[index].reset(mesh->AddMeshUser(&info, nullptr));
 	}
 
