@@ -90,7 +90,7 @@ static int txtfmt_py_find_builtinfunc(const char *string)
 	else if (STR_LITERAL_STARTSWITH(string, "self",    len)) i = len;
 	else                                                      i = 0;
 
-	/* If next source char is an identifier (eg. 'i' in "definate") no match */
+	/* If next source char is an identifier (eg. 'i' in "definite") no match */
 	if (i == 0 || text_check_identifier(string[i]))
 		return -1;
 	return i;
@@ -111,7 +111,7 @@ static int txtfmt_py_find_specialvar(const char *string)
 	else if (STR_LITERAL_STARTSWITH(string, "class", len)) i = len;
 	else                                                   i = 0;
 
-	/* If next source char is an identifier (eg. 'i' in "definate") no match */
+	/* If next source char is an identifier (eg. 'i' in "definite") no match */
 	if (i == 0 || text_check_identifier(string[i]))
 		return -1;
 	return i;
