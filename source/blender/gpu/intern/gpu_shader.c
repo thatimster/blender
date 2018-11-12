@@ -232,6 +232,9 @@ static void gpu_shader_standard_extensions(char defines[MAX_EXT_DEFINE_LENGTH], 
 			/* TODO: maybe require this? shaders become so much nicer */
 		}
 	}
+	if (GPU_type_matches(GPU_DEVICE_ANY, GPU_OS_MAC, GPU_DRIVER_ANY) && GPU_legacy_support()) {
+		strcat(defines, "#extension GL_APPLE_vertex_array_object: enable\n");
+	}
 }
 
 static void gpu_shader_standard_defines(char defines[MAX_DEFINE_LENGTH],

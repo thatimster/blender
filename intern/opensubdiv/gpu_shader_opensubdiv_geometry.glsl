@@ -47,6 +47,10 @@ layout(triangle_strip, max_vertices = 4) out;
   #extension GL_EXT_texture_buffer_object: enable
 #endif
 
+#if __VERSION__ < 130
+  #define texelFetch texelFetch2D
+#endif
+
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
 uniform int PrimitiveIdBase;
