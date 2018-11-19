@@ -863,13 +863,12 @@ void KX_KetsjiEngine::RenderTexture(KX_Scene *scene, const KX_TextureRenderData&
 
 	m_rasterizer->Disable(RAS_Rasterizer::RAS_SCISSOR_TEST);
 
-	textureData.m_bind(m_rasterizer);
-
-	m_rasterizer->Clear(textureData.m_clearMode);
 	// TODO eye ?
 	m_rasterizer->SetProjectionMatrix(textureData.m_progMatrix);
 	m_rasterizer->SetViewMatrix(textureData.m_viewMatrix);
 
+	textureData.m_bind(m_rasterizer);
+	m_rasterizer->Clear(textureData.m_clearMode);
 
 	if (textureData.m_mode & KX_TextureRenderData::MODE_RENDER_WORLD) {
 		KX_WorldInfo *worldInfo = scene->GetWorldInfo();
