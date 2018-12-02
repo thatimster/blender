@@ -1433,9 +1433,9 @@ void KX_Scene::UpdateLights(RAS_Rasterizer *rasty)
 	}
 }
 
-std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
+std::vector<KX_TextureRenderScheduler> KX_Scene::ScheduleShadowsRender()
 {
-	std::vector<KX_TextureRenderData> textureDatas;
+	std::vector<KX_TextureRenderScheduler> textureDatas;
 
 	for (KX_LightObject *light : m_lightlist) {
 		RAS_ILightObject *raslight = light->GetLightData();
@@ -1448,8 +1448,8 @@ std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
 		raslight->GetShadowMatrix(viewmat, projmat);
 		const SG_Frustum frustum(projmat * viewmat);
 
-		KX_TextureRenderData textureData;
-		textureData.m_mode = KX_TextureRenderData::MODE_NONE;
+		KX_TextureRenderScheduler textureData;
+		textureData.m_mode = KX_TextureRenderScheduler::MODE_NONE;
 		textureData.m_clearMode = 
 				(RAS_Rasterizer::ClearBit)(RAS_Rasterizer::RAS_DEPTH_BUFFER_BIT | RAS_Rasterizer::RAS_COLOR_BUFFER_BIT);
 		textureData.m_drawingMode = RAS_Rasterizer::RAS_SHADOW;
@@ -1458,7 +1458,7 @@ std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
 		textureData.m_camTrans = mt::mat4::ToAffineTransform(viewmat).Inverse();
 		textureData.m_position = light->NodeGetWorldPosition();
 		textureData.m_frustum = frustum;
-		textureData.m_cullingLayer = raslight->GetShadowLayer();
+		textureData.m_visibleLayers = raslight->GetShadowLayer();
 		textureData.m_index = 0;
 		textureData.m_bind = [raslight](RAS_Rasterizer *UNUSED(rasty)){raslight->BindShadowBuffer();};
 		textureData.m_unbind = [raslight](RAS_Rasterizer *UNUSED(rasty)){raslight->UnbindShadowBuffer();};
@@ -1469,7 +1469,7 @@ std::vector<KX_TextureRenderData> KX_Scene::ScheduleShadowsRender()
 	return textureDatas;
 }
 
-std::vector<KX_TextureRenderData> KX_Scene::ScheduleTexturesRender(RAS_Rasterizer *rasty, const KX_SceneRenderData& sceneData)
+std::vector<KX_TextureRenderScheduler> KX_Scene::ScheduleTexturesRender(RAS_Rasterizer *rasty, const KX_SceneRenderScheduler& sceneData)
 {
 	return m_rendererManager->ScheduleRender(rasty, sceneData);
 }

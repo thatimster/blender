@@ -74,7 +74,7 @@ void KX_PlanarMap::InvalidateProjectionMatrix()
 {
 }
 
-mt::mat4 KX_PlanarMap::GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderData& cameraData)
+mt::mat4 KX_PlanarMap::GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderScheduler& cameraData)
 {
 	RAS_FrameFrustum frustum = cameraData.m_frameFrustum;
 	frustum.camnear = m_clipStart;

@@ -53,7 +53,7 @@ public:
 	virtual std::string GetName();
 
 	virtual void InvalidateProjectionMatrix();
-	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderData& cameraData);
+	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderScheduler& cameraData);
 
 	virtual LayerUsage EnsureLayers(int viewportCount);
 	virtual bool PrepareFace(const mt::mat4& sceneViewMat, unsigned short face, mt::mat3x4& camTrans);
