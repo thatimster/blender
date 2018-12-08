@@ -36,12 +36,12 @@
 #include "RAS_Mesh.h"
 #include "RAS_RenderNode.h"
 #include "RAS_AttributeArray.h"
+#include "RAS_Rasterizer.h"
 
 #include "CM_Update.h"
 
 #include <string>
 
-class RAS_IMaterialShader;
 class SCA_IScene;
 
 /**
@@ -92,7 +92,6 @@ protected:
 	unsigned int m_flag;
 
 	RAS_Texture *m_textures[RAS_Texture::MaxUnits];
-	RAS_IMaterialShader *m_shaders[RAS_Rasterizer::RAS_DRAW_MAX];
 
 public:
 	RAS_IMaterial(const std::string& name);
@@ -118,8 +117,8 @@ public:
 	void UpdateTextures();
 	void ActivateTextures();
 	void DeactivateTextures();
-	RAS_IMaterialShader *GetShader(unsigned short index) const;
 
+	virtual RAS_IMaterialShader *GetShader(RAS_Rasterizer::DrawType drawingMode) const = 0;
 	virtual const std::string GetTextureName() const = 0;
 	virtual SCA_IScene *GetScene() const = 0;
 	virtual void ReloadMaterial() = 0;

@@ -35,6 +35,7 @@ public:
 
 	Material *GetBlenderMaterial() const;
 
+	virtual RAS_IMaterialShader *GetShader(RAS_Rasterizer::DrawType drawingMode) const;
 	virtual const std::string GetTextureName() const;
 	virtual SCA_IScene *GetScene() const;
 	virtual void ReloadMaterial();

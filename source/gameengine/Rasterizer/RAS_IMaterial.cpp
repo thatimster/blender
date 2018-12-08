@@ -168,8 +168,3 @@ void RAS_IMaterial::DeactivateTextures()
 		}
 	}
 }
-
-RAS_IMaterialShader *RAS_IMaterial::GetShader(unsigned short index) const
-{
-	return m_shaders[index];
-}

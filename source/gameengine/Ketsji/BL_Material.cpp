@@ -153,6 +153,52 @@ const RAS_Rasterizer::BlendFunc (&BL_Material::GetBlendFunc() const)[2]
 	return m_blendFunc;
 }
 
+RAS_IMaterialShader *BL_Material::GetShader(RAS_Rasterizer::DrawType drawingMode) const
+{
+	static const RAS_OverrideShader::Type overrideShaderType[RAS_Rasterizer::RAS_DRAW_MAX][RAS_IMaterialShader::GEOM_MAX] = {
+		// {GEOM_NORMAL, GEOM_INSTANCING}
+		// RAS_WIREFRAME
+		{RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK,
+		 RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK_INSTANCING},
+		// RAS_TEXTURED, Never overrided.
+		{RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK,
+		 RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK_INSTANCING},
+		// RAS_SHADOW
+		{RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK,
+		 RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK_INSTANCING},
+		// RAS_SHADOW_VARIANCE
+		{RAS_OverrideShader::RAS_OVERRIDE_SHADER_SHADOW_VARIANCE,
+		 RAS_OverrideShader::RAS_OVERRIDE_SHADER_SHADOW_VARIANCE_INSTANCING}
+	};
+
+	if (m_customShader && m_customShader->Ok()) {
+		switch (drawingMode) {
+			case RAS_Rasterizer::RAS_TEXTURED:
+			{
+				return m_customShader.get();
+			}
+			default:
+			{
+				return RAS_OverrideShader::GetShader(overrideShaderType[drawingMode][RAS_IMaterialShader::GEOM_NORMAL]);
+			}
+		}
+	}
+	else if (m_blenderShader && m_blenderShader->Ok()) {
+		switch (drawingMode) {
+			case RAS_Rasterizer::RAS_TEXTURED:
+			{
+				return m_blenderShader.get();
+			}
+			default:
+			{
+				return RAS_OverrideShader::GetShader(overrideShaderType[drawingMode][m_blenderShader->GetGeomMode()]);
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 const std::string BL_Material::GetTextureName() const
 {
 	return (m_textures[0] ? m_textures[0]->GetName() : "");
@@ -188,35 +234,6 @@ void BL_Material::ReloadMaterial()
 
 void BL_Material::Prepare()
 {
-	// TODO : préparer les shader globalement avant la frame (voir avec pre_draw_setup)
-	if (m_customShader && m_customShader->Ok()) {
-		m_shaders[RAS_Rasterizer::RAS_TEXTURED] = m_customShader.get();
-
-		m_shaders[RAS_Rasterizer::RAS_WIREFRAME] =
-				RAS_OverrideShader::GetShader(RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK);
-		m_shaders[RAS_Rasterizer::RAS_SHADOW] =
-				RAS_OverrideShader::GetShader(RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK);
-		m_shaders[RAS_Rasterizer::RAS_SHADOW_VARIANCE] =
-				RAS_OverrideShader::GetShader(RAS_OverrideShader::RAS_OVERRIDE_SHADER_SHADOW_VARIANCE);
-	}
-	else {
-		m_shaders[RAS_Rasterizer::RAS_TEXTURED] = m_blenderShader.get();
-		const bool useInstancing = m_blenderShader->GetGeomMode() == RAS_IMaterialShader::GEOM_INSTANCING; // TODO table
-
-		m_shaders[RAS_Rasterizer::RAS_WIREFRAME] =
-				RAS_OverrideShader::GetShader(useInstancing ?
-					RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK_INSTANCING :
-					RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK);
-		m_shaders[RAS_Rasterizer::RAS_SHADOW] =
-				RAS_OverrideShader::GetShader(useInstancing ?
-					RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK_INSTANCING :
-					RAS_OverrideShader::RAS_OVERRIDE_SHADER_BLACK);
-		m_shaders[RAS_Rasterizer::RAS_SHADOW_VARIANCE] =
-				RAS_OverrideShader::GetShader(useInstancing ?
-					RAS_OverrideShader::RAS_OVERRIDE_SHADER_SHADOW_VARIANCE_INSTANCING :
-					RAS_OverrideShader::RAS_OVERRIDE_SHADER_SHADOW_VARIANCE);
-	}
-
 	UpdateTextures();
 }
 

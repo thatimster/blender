@@ -31,9 +31,6 @@ RAS_TextMaterial::RAS_TextMaterial()
 	:RAS_IMaterial("__TextMaterial__")
 {
 	m_rasMode |= (RAS_ALPHA | RAS_TEXT);
-
-	m_shaders[RAS_Rasterizer::RAS_WIREFRAME] = RAS_TextShader::GetSingleton();
-	m_shaders[RAS_Rasterizer::RAS_TEXTURED] = RAS_TextShader::GetSingleton();
 }
 
 RAS_TextMaterial::~RAS_TextMaterial()
@@ -42,6 +39,11 @@ RAS_TextMaterial::~RAS_TextMaterial()
 
 void RAS_TextMaterial::Prepare()
 {
+}
+
+RAS_IMaterialShader *RAS_TextMaterial::GetShader(RAS_Rasterizer::DrawType UNUSED(drawingMode)) const
+{
+	return RAS_TextShader::GetSingleton();
 }
 
 const std::string RAS_TextMaterial::GetTextureName() const

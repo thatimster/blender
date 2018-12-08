@@ -15,7 +15,8 @@ public:
 	enum GeomType
 	{
 		GEOM_NORMAL,
-		GEOM_INSTANCING
+		GEOM_INSTANCING,
+		GEOM_MAX
 	};
 
 protected:

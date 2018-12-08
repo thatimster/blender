@@ -169,7 +169,7 @@ void RAS_DisplayArrayBucket::UpdateActiveMeshSlots(RAS_Rasterizer::DrawType draw
 
 			// Construct the attribute array for all shader used by the material.
 			for (unsigned short i = 0; i < RAS_Rasterizer::RAS_DRAW_MAX; ++i) {
-				RAS_IMaterialShader *shader = mat->GetShader(i);
+				RAS_IMaterialShader *shader = mat->GetShader((RAS_Rasterizer::DrawType)i);
 				const RAS_AttributeArray::AttribList attribList = shader->GetAttribs(layersInfo);
 				m_attribArrays[i] = RAS_AttributeArray(attribList, m_displayArray);
 			}
