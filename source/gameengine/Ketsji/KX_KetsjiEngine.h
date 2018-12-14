@@ -34,7 +34,7 @@
 #define __KX_KETSJIENGINE_H__
 
 #include "KX_TimeCategoryLogger.h"
-#include "KX_RenderScheduler.h"
+#include "KX_RenderSchedule.h"
 #include "EXP_Python.h"
 #include "KX_WorldInfo.h"
 #include "RAS_CameraData.h"
@@ -252,19 +252,19 @@ private:
 	/// Update and return the projection matrix of a camera depending on the viewport.
 	mt::mat4 GetCameraProjectionMatrix(KX_Scene *scene, KX_Camera *cam, RAS_Rasterizer::StereoMode stereoMode,
 			RAS_Rasterizer::StereoEye eye, const RAS_Rect& viewport, const RAS_Rect& area) const;
-	KX_CameraRenderScheduler GetCameraRenderData(KX_Scene *scene, KX_Camera *camera, KX_Camera *overrideCullingCam,
+	KX_CameraRenderSchedule ScheduleCameraRender(KX_Scene *scene, KX_Camera *camera, KX_Camera *overrideCullingCam,
 			const RAS_Rect& displayArea, RAS_Rasterizer::StereoMode stereoMode, RAS_Rasterizer::StereoEye eye,
 			unsigned short viewportIndex);
-	KX_FrameRenderScheduler GetFrameRenderData(RAS_Rasterizer::StereoMode stereoMode, bool useStereo, bool renderPerEye, unsigned short index);
+	KX_FrameRenderSchedule ScheduleFrameRender(RAS_Rasterizer::StereoMode stereoMode, bool useStereo, bool renderPerEye, unsigned short index);
 	/// Compute frame render data per eyes (in case of stereo), scenes and camera.
-	KX_RenderScheduler GetRenderData();
+	KX_RenderSchedule ScheduleRender();
 
-	void RenderTexture(KX_Scene *scene, const KX_TextureRenderScheduler& textureData);
-	void RenderCamera(KX_Scene *scene, const KX_CameraRenderScheduler& cameraFrameData, RAS_OffScreen *offScreen, unsigned short pass, bool isFirstScene);
+	void RenderTexture(KX_Scene *scene, const KX_TextureRenderSchedule& textureSchedule);
+	void RenderCamera(KX_Scene *scene, const KX_CameraRenderSchedule& cameraSchedule, RAS_OffScreen *offScreen, unsigned short pass, bool isFirstScene);
 	RAS_OffScreen *PostRenderScene(KX_Scene *scene, RAS_OffScreen *inputofs, RAS_OffScreen *targetofs);
 	void RenderDebugProperties();
 	/// Debug draw cameras frustum of a scene.
-	void DrawDebugCameraFrustum(KX_Scene *scene, const KX_CameraRenderScheduler& cameraFrameData);
+	void DrawDebugCameraFrustum(KX_Scene *scene, const KX_CameraRenderSchedule& cameraSchedule);
 	/// Debug draw lights shadow frustum of a scene.
 	void DrawDebugShadowFrustum(KX_Scene *scene);
 

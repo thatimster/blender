@@ -29,7 +29,7 @@
 
 #include "EXP_Value.h"
 #include "RAS_TextureRenderer.h"
-#include "KX_RenderScheduler.h"
+#include "KX_RenderSchedule.h"
 
 class KX_GameObject;
 class KX_Camera;
@@ -84,7 +84,7 @@ public:
 	float GetLodDistanceFactor() const;
 	void SetLodDistanceFactor(float lodfactor);
 
-	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderScheduler& cameraData) = 0;
+	virtual mt::mat4 GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderSchedule& cameraData) = 0;
 
 	bool GetEnabled() const;
 	int GetIgnoreLayers() const;

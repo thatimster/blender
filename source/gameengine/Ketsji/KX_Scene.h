@@ -280,8 +280,8 @@ public:
 			RAS_Rasterizer *rasty, RAS_OffScreen *offScreen);
 
 	void UpdateLights(RAS_Rasterizer *rasty);
-	std::vector<KX_TextureRenderScheduler> ScheduleShadowsRender();
-	std::vector<KX_TextureRenderScheduler> ScheduleTexturesRender(RAS_Rasterizer *rasty, const KX_SceneRenderScheduler& sceneData);
+	std::vector<KX_TextureRenderSchedule> ScheduleShadowsRender();
+	std::vector<KX_TextureRenderSchedule> ScheduleTexturesRender(RAS_Rasterizer *rasty, const KX_SceneRenderSchedule& sceneData);
 
 	/// Update all transforms according to the scenegraph.
 	static bool KX_ScenegraphUpdateFunc(SG_Node *node, void *gameobj, void *scene);

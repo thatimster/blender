@@ -39,6 +39,7 @@
 
 #include "RAS_FramingManager.h"
 #include "RAS_CameraData.h"
+#include "RAS_Rasterizer.h"
 
 #ifdef WITH_PYTHON
 /* utility conversion function */
@@ -50,6 +51,12 @@ class KX_Camera : public KX_GameObject
 	Py_Header
 protected:
 	friend class KX_Scene;
+
+	struct ViewTransform
+	{
+		
+	} m_transforms[RAS_Rasterizer::];
+
 	/** Camera parameters (clips distances, focal length). These
 	 * params are closely tied to Blender. In the gameengine, only the
 	 * projection and modelview matrices are relevant. There's a

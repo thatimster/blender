@@ -27,7 +27,7 @@
 #ifndef __KX_TEXTURE_RENDERER_MANAGER_H__
 #define __KX_TEXTURE_RENDERER_MANAGER_H__
 
-#include "KX_RenderScheduler.h"
+#include "KX_RenderSchedule.h"
 
 class KX_GameObject;
 class KX_TextureRenderer;
@@ -41,8 +41,8 @@ private:
 	std::vector<KX_TextureRenderer *> m_renderers;
 
 	/// Schedule a texture renderer.
-	KX_TextureRenderSchedulerList ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
-			const std::vector<const KX_CameraRenderScheduler *>& cameraDatas);
+	KX_TextureRenderScheduleList ScheduleRenderer(RAS_Rasterizer *rasty, KX_TextureRenderer *renderer,
+			const std::vector<const KX_CameraRenderSchedule *>& cameraSchedules);
 
 public:
 	enum RendererType {
@@ -65,7 +65,7 @@ public:
 	void AddRenderer(RendererType type, RAS_Texture *texture, KX_GameObject *viewpoint);
 
 	/// Schedule all texture renderers for rendering.
-	KX_TextureRenderSchedulerList ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderScheduler& sceneData);
+	KX_TextureRenderScheduleList ScheduleRender(RAS_Rasterizer *rasty, const KX_SceneRenderSchedule& sceneSchedule);
 
 	/// Merge the content of an other renderer manager, used during lib loading.
 	void Merge(KX_TextureRendererManager *other);

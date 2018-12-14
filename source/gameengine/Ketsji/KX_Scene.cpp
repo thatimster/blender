@@ -1433,9 +1433,9 @@ void KX_Scene::UpdateLights(RAS_Rasterizer *rasty)
 	}
 }
 
-std::vector<KX_TextureRenderScheduler> KX_Scene::ScheduleShadowsRender()
+std::vector<KX_TextureRenderSchedule> KX_Scene::ScheduleShadowsRender()
 {
-	std::vector<KX_TextureRenderScheduler> textureDatas;
+	std::vector<KX_TextureRenderSchedule> textureDatas;
 
 	for (KX_LightObject *light : m_lightlist) {
 		RAS_ILightObject *raslight = light->GetLightData();
@@ -1448,8 +1448,8 @@ std::vector<KX_TextureRenderScheduler> KX_Scene::ScheduleShadowsRender()
 		raslight->GetShadowMatrix(viewmat, projmat);
 		const SG_Frustum frustum(projmat * viewmat);
 
-		KX_TextureRenderScheduler textureData;
-		textureData.m_mode = KX_TextureRenderScheduler::MODE_NONE;
+		KX_TextureRenderSchedule textureData;
+		textureData.m_mode = KX_TextureRenderSchedule::MODE_NONE;
 		textureData.m_clearMode = 
 				(RAS_Rasterizer::ClearBit)(RAS_Rasterizer::RAS_DEPTH_BUFFER_BIT | RAS_Rasterizer::RAS_COLOR_BUFFER_BIT);
 		textureData.m_drawingMode = RAS_Rasterizer::RAS_SHADOW;
@@ -1459,6 +1459,7 @@ std::vector<KX_TextureRenderScheduler> KX_Scene::ScheduleShadowsRender()
 		textureData.m_position = light->NodeGetWorldPosition();
 		textureData.m_frustum = frustum;
 		textureData.m_visibleLayers = raslight->GetShadowLayer();
+		textureData.m_eye = RAS_Rasterizer::RAS_STEREO_LEFTEYE;
 		textureData.m_index = 0;
 		textureData.m_bind = [raslight](RAS_Rasterizer *UNUSED(rasty)){raslight->BindShadowBuffer();};
 		textureData.m_unbind = [raslight](RAS_Rasterizer *UNUSED(rasty)){raslight->UnbindShadowBuffer();};
@@ -1469,7 +1470,7 @@ std::vector<KX_TextureRenderScheduler> KX_Scene::ScheduleShadowsRender()
 	return textureDatas;
 }
 
-std::vector<KX_TextureRenderScheduler> KX_Scene::ScheduleTexturesRender(RAS_Rasterizer *rasty, const KX_SceneRenderScheduler& sceneData)
+std::vector<KX_TextureRenderSchedule> KX_Scene::ScheduleTexturesRender(RAS_Rasterizer *rasty, const KX_SceneRenderSchedule& sceneData)
 {
 	return m_rendererManager->ScheduleRender(rasty, sceneData);
 }

@@ -89,7 +89,7 @@ void KX_CubeMap::InvalidateProjectionMatrix()
 	m_invalidProjection = true;
 }
 
-mt::mat4 KX_CubeMap::GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderScheduler& UNUSED(cameraData))
+mt::mat4 KX_CubeMap::GetProjectionMatrix(RAS_Rasterizer *rasty, const KX_CameraRenderSchedule& UNUSED(cameraData))
 {
 	if (m_invalidProjection) {
 		m_projection = rasty->GetFrustumMatrix(-m_clipStart, m_clipStart, -m_clipStart, m_clipStart, m_clipStart, m_clipEnd);

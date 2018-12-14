@@ -11,13 +11,13 @@ class KX_Scene;
 class KX_Camera;
 
 /** \brief This file contains all the scheduling data describing the rendering proceeded in a frame.
- * KX_RenderScheduler is the main scheduler which for each eye (in case of stereo) contains a frame
+ * KX_RenderSchedule is the main scheduler which for each eye (in case of stereo) contains a frame
  * and each of these frame contains the scenes and cameras.
  */
 
 /** Info for off screen rendering of shadow and texture map.
  */
-struct KX_TextureRenderScheduler
+struct KX_TextureRenderSchedule
 {
 	enum Mode {
 		MODE_NONE = 0,
@@ -51,6 +51,8 @@ struct KX_TextureRenderScheduler
 	/// Distance factor used when computing lod.
 	float m_lodFactor;
 
+	/// Stereo eye.
+	RAS_Rasterizer::StereoEye m_eye;
 	/// Viewport index used while rendering this texture.
 	unsigned short m_index;
 
@@ -60,11 +62,11 @@ struct KX_TextureRenderScheduler
 	std::function<void (RAS_Rasterizer *)> m_unbind;
 };
 
-using KX_TextureRenderSchedulerList = std::vector<KX_TextureRenderScheduler>;
+using KX_TextureRenderScheduleList = std::vector<KX_TextureRenderSchedule>;
 
 /** Info for camera rendering.
  */
-struct KX_CameraRenderScheduler
+struct KX_CameraRenderSchedule
 {
 	/// View model matrix.
 	mt::mat4 m_viewMatrix;
@@ -79,6 +81,8 @@ struct KX_CameraRenderScheduler
 	/// True if the projection is perspective.
 	bool m_perspective;
 
+	/// Camera passed to scene callbacks.
+	KX_Camera *m_camera;
 	/// Frame (screen area) frustum.
 	RAS_FrameFrustum m_frameFrustum;
 	/// Frustum culling info.
@@ -104,26 +108,26 @@ struct KX_CameraRenderScheduler
 	unsigned short m_index;
 };
 
-using KX_CameraRenderSchedulerList = std::vector<KX_CameraRenderScheduler>;
+using KX_CameraRenderScheduleList = std::vector<KX_CameraRenderSchedule>;
 
 /** Scene render info.
  * Contains cameras and textures schedulers.
  */
-struct KX_SceneRenderScheduler
+struct KX_SceneRenderSchedule
 {
 	KX_Scene *m_scene;
-	KX_TextureRenderSchedulerList m_textureDataList;
+	KX_TextureRenderScheduleList m_textureDataList;
 	// Use multiple list of cameras in case of per eye stereo.
-	KX_CameraRenderSchedulerList m_cameraDataList[RAS_Rasterizer::RAS_STEREO_MAXEYE];
+	KX_CameraRenderScheduleList m_cameraDataList[RAS_Rasterizer::RAS_STEREO_MAXEYE];
 };
 
-using KX_SceneRenderSchedulerList = std::vector<KX_SceneRenderScheduler>;
+using KX_SceneRenderScheduleList = std::vector<KX_SceneRenderSchedule>;
 
 /** Info about usage of an off screen.
  * In case of stereo requiring compositing, two frames are used for one off screen
  * per eye. In case of regular render only one frame is used.
  */
-struct KX_FrameRenderScheduler
+struct KX_FrameRenderSchedule
 {
 	/// Off screen type targeted.
 	RAS_Rasterizer::OffScreenType m_ofsType;
@@ -131,12 +135,12 @@ struct KX_FrameRenderScheduler
 	std::vector<RAS_Rasterizer::StereoEye> m_eyes;
 };
 
-using KX_FrameRenderSchedulerList = std::vector<KX_FrameRenderScheduler>;
+using KX_FrameRenderScheduleList = std::vector<KX_FrameRenderSchedule>;
 
 /** Root render scheduler info.
  * Contains frame and scene schedulers.
  */
-struct KX_RenderScheduler
+struct KX_RenderSchedule
 {
 	/// Frame border size and color.
 	RAS_FrameSettings m_frameSettings;
@@ -146,9 +150,9 @@ struct KX_RenderScheduler
 	bool m_renderPerEye;
 
 	/// Scene info to render.
-	KX_SceneRenderSchedulerList m_sceneDataList;
+	KX_SceneRenderScheduleList m_sceneDataList;
 	/// Frame used to render.
-	KX_FrameRenderSchedulerList m_frameDataList;
+	KX_FrameRenderScheduleList m_frameDataList;
 };
 
 #endif  // __KX_RENDER_DATA_H__
